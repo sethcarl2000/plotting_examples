@@ -7,10 +7,15 @@ import ROOT as r
 # create a histogram of our data 
 def make_histogram2d(h_name, h_title, data_x, data_y, nbins=100, x_range=[50., 150.], y_range=[50., 150.]):
     
+    print("Making histogram '", h_title, "'", end='')
+
     h2d = r.TH2D(h_name, h_title, nbins, x_range[0], x_range[1], nbins, y_range[0], y_range[1])
     
-    for xy in np.stack((data_x, data_y), axis=-1):
+    xy_stack = np.stack((data_x, data_y), axis=-1)
+    for xy in xy_stack:
         h2d.Fill(xy[0], xy[1])
+
+    print("done.")
 
     return h2d 
 #____________________________________________________________________________________
@@ -21,16 +26,20 @@ x0    = 50.
 x1    = 150.
 mean  = 100. 
 sigma = 6.
-int nbins = 100 
+nbins = int(100) 
 
 x_test = np.random.uniform(x0, x1, 10)
 y_test = np.random.uniform(x0, x1, 10)
 
-for xy in np.stack((x_test, y_test), axis=-1):
-    print("x/y: ", xy[0], "/", xy[1])
+xy_test = np.stack((x_test, y_test), axis=-1)
+i=0 
+for xy in xy_test:
+    i += 1
+    print("testing ", i, "/", len(xy_test), end='')
+    print(" - x/y: ", xy[0], "/", xy[1])
 
-exit()
 
+print("exited loop.")
 
 # standard gaussian
 pts_gauss_x = np.random.normal(mean, sigma, npts)
@@ -53,20 +62,31 @@ h_offset = make_histogram2d("h_offset", "gauss + offset", pts_offset_x, pts_offs
 pts_uniform_x = np.random.uniform(0., 1., 6*npts)
 pts_uniform_y = np.random.uniform(0., 1., 6*npts)
 
-pts_1xx_offset_x = ( (1./xmin) - ((1./xmin) - (1./xmax))*pts_uniform_x )**(-1)
-pts_1xx_offset_y = ( (1./xmin) - ((1./xmin) - (1./xmax))*pts_uniform_y )**(-1)
+pts_1xx_offset_x = ( (1./x0) - ((1./x0) - (1./x1))*pts_uniform_x )**(-1)
+pts_1xx_offset_y = ( (1./x0) - ((1./x0) - (1./x1))*pts_uniform_y )**(-1)
 
 pts_1xx_x = np.concatenate((pts_gauss_x, pts_1xx_offset_x))
 pts_1xx_y = np.concatenate((pts_gauss_y, pts_1xx_offset_y))
 
-h_1xx = make_histogram("h_1xx", "gauss + 1/x^{2}", pts_1xx_x, pts_1xx_y, bins, [x0,x1], [x0,x1])
+h_1xx = make_histogram2d("h_1xx", "gauss + 1/x^{2}", pts_1xx_x, pts_1xx_y, nbins, [x0,x1], [x0,x1])
 
 
 # create a histogram with a gaussain background
 pts_gauss_bg_x = np.concatenate((pts_gauss_x, np.random.normal(mean, sigma*6, npts))) 
 pts_gauss_bg_y = np.concatenate((pts_gauss_y, np.random.normal(mean, sigma*6, npts)))
 
-h_gauss_bg = make_histogram("h_gbg", "gauss + gauss background (6#sigma)", pts_gauss_bg_x, pts_gauss_bg_y, bins, [x0,x1], [x0,x1])
+h_gauss_bg = make_histogram2d("h_gbg", "gauss + gauss background (6#sigma)", pts_gauss_bg_x, pts_gauss_bg_y, nbins, [x0,x1], [x0,x1])
 
+canv = r.TCanvas("c", "canv", 1600, 800)
 
-plt.show()
+canv.Divide(2,2)
+
+r.gStyle.SetOptStat(0)
+
+canv.cd(1); h_gauss.Draw("col")
+canv.cd(2); h_offset.Draw("col")
+canv.cd(3); h_1xx.Draw("col")
+canv.cd(4); h_gauss_bg.Draw("col")
+
+canv.SaveAs("canvas2d_py.png")
+                            
